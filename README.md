@@ -43,7 +43,7 @@ The lab demonstrates the full **Chained Vulnerability** scenario:
 - 💉 **Stage 2 — Reflected XSS** delivers a script payload via a crafted search URL the admin clicks.
 - 🪤 **Stage 3 — CSRF + Mass-Assignment** silently fires a `POST /admin/users/set-role` from inside the admin's session. The endpoint accepts whatever role the form sends — including `admin`, even though the UI only ever exposes `student` / `ta`.
 
-## 🛡️ Three Mitigations, Textbook-Clean
+## 🛡️ Three Mitigations
 
 - ✅ Parameterized queries (`?` placeholders) replace string concatenation.
 - ✅ Jinja2 auto-escaping + strict **Content-Security-Policy** header for any user-controlled data.
