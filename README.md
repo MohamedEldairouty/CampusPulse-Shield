@@ -5,7 +5,7 @@
 <h1 align="center">🛡️ CampusPulse-Shield</h1>
 
 <p align="center">
-  🎯 Chained Vulnerability Lab • 🐞 SQLi → 💉 Reflected XSS → 🪤 CSRF • 🧪 Vulnerable vs 🟢 Hardened Builds
+  🎯 Chained Vulnerability Lab • 🐞 SQLi → 💉 Reflected XSS → 🪤 CSRF • 🔴 Vulnerable vs 🟢 Hardened Builds
   <br/>
   🎓 <em>Course Project — Cyber Security</em>
   <br/>
