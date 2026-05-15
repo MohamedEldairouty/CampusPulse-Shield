@@ -5,7 +5,7 @@
 <h1 align="center">🛡️ CampusPulse-Shield</h1>
 
 <p align="center">
-  🎯 Chained Vulnerability Lab • 🐞 SQLi → 💉 Reflected XSS → 🪤 CSRF + Mass-Assignment • 🧪 Vulnerable vs 🟢 Hardened Builds
+  🎯 Chained Vulnerability Lab • 🐞 SQLi → 💉 Reflected XSS → 🪤 CSRF • 🧪 Vulnerable vs 🟢 Hardened Builds
   <br/>
   🎓 <em>Course Project — Cyber Security</em>
   <br/>
@@ -29,7 +29,7 @@ Run both side-by-side. Attack the red one. Watch the same attack die against the
 
 The lab demonstrates the full **Chained Vulnerability** scenario:
 
-> 🔍 **SQL Injection** (recon) → 💉 **Reflected XSS** (delivery) → 🪤 **CSRF + Mass-Assignment** (privilege escalation)
+> 🔍 **SQL Injection** (recon) → 💉 **Reflected XSS** (delivery) → 🪤 **CSRF + Mass-Assignment** 
 >
 > End goal: a low-privilege student promotes themselves to **admin** without ever knowing the admin's password.
 
@@ -355,23 +355,6 @@ Each role lands on the *same* `/dashboard` URL but the content adapts to what th
 | **[@Youssef Negm](https://github.com/Negm24)**                                      | 221011914  | 
 | **Mariam Ashraf**                                                                   | 221002547  | 
 | **Nayrouz Ahmed**                                                                   | 221011969  | 
-
----
-
-# 🧪 Live Demo Plan
-
-1. 🟢 Both builds are running side-by-side.
-2. Login as **Negm** on `:5000`. Visit `/search`.
-3. **Stage 1 SQLi** — paste `' UNION SELECT id, username, email, role, 1 FROM users-- ` → admin email leaked in the results.
-4. Craft the **Stage 2 XSS** URL with a `<script>` payload that `fetch()`-es `/admin/users/set-role` with `target_role=admin`.
-5. Open the admin's browser, log in as **Dairo**, click the crafted link → script fires.
-6. **Stage 3 CSRF + Mass-Assignment** — silent POST flips `Negm.role` from `student` → `admin`.
-7. Refresh `:5000` as Negm → admin panel is now accessible. ✅ Attack succeeds.
-8. **(second outcome)** Repeat the chain with the XSS payload re-aimed at `POST /courses/<id>/grade` (fields `student_id=4&grade=A+`) — Negm's grade quietly flips to **A+** and his GPA jumps. Same flaws, sneakier endpoint, no UI fingerprint. Visible on the `/my-grades` page.
-9. Repeat the *exact same steps* against `:5001`:
-   - SQLi payload returns harmless text (no `users` data leaked).
-   - XSS URL renders as literal characters in the page.
-   - CSRF POST is rejected (missing/invalid token, or invalid role). ❌ Attack fails at every stage — both the role-flip and the grade-tamper variant.
 
 ---
 
