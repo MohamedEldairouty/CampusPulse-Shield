@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Create account{% endblock %}
+{% block public_content %}
+<div class="auth-card">
+  <div class="auth-logo">
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="">
+    <span class="brand-name">CampusPulse</span>
+  </div>
+  <h1>Create your account ✨</h1>
+  <p class="subtitle">Join CampusPulse as a student.</p>
+
+  <form method="post" class="form">
+    <label>Full name
+      <input name="full_name" type="text" required autofocus>
+    </label>
+    <div class="form-grid">
+      <label>Username
+        <input name="username" type="text" autocomplete="username" required>
+      </label>
+      <label>Email
+        <input name="email" type="email" autocomplete="email" required>
+      </label>
+    </div>
+    <div class="form-grid">
+      <label>Major
+        <input name="major" type="text" placeholder="e.g. Computer Engineering">
+      </label>
+      <label>Year
+        <select name="year">
+          <option value="Year 1">Year 1</option>
+          <option value="Year 2">Year 2</option>
+          <option value="Year 3">Year 3</option>
+          <option value="Year 4" selected>Year 4</option>
+          <option value="Year 5">Year 5</option>
+        </select>
+      </label>
+    </div>
+    <label>Password
+      <input name="password" type="password" autocomplete="new-password" required minlength="6">
+    </label>
+    <button class="btn btn-primary btn-block" type="submit">Create account</button>
+  </form>
+
+  <p class="muted center small" style="margin-top: 18px">
+    Already have one? <a href="{{ url_for('auth.login') }}">Sign in</a>.
+  </p>
+</div>
+{% endblock %}

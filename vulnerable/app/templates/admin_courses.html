@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Manage courses{% endblock %}
+{% block content %}
+
+<h1>⚙️ Manage courses</h1>
+<p class="muted">Add, edit, or remove course offerings. A course can be co-taught by several professors.</p>
+
+{# Datalist of existing professor names — typing a new name is also allowed. #}
+<datalist id="prof-list">
+  {% for p in all_profs %}<option value="{{ p.name }}"></option>{% endfor %}
+</datalist>
+
+<h2 class="section-title">➕ Add a new course</h2>
+<form method="post" action="{{ url_for('main.admin_course_create') }}" class="card form">
+  <div class="form-grid">
+    <label>Code <input name="code" type="text" placeholder="e.g. CSC450" required></label>
+    <label>Credits
+      <select name="credits">
+        <option>2</option><option selected>3</option><option>4</option>
+      </select>
+    </label>
+  </div>
+  <label>Title <input name="title" type="text" required></label>
+  <label>Professors <span class="muted small">— pick from the list or type new names, separated by commas</span>
+    <input name="professors_csv" list="prof-list" type="text"
+           placeholder="e.g. Dr. Soha, Dr. Mohamed Samir">
+  </label>
+  <label>Description <textarea name="description" placeholder="What's this course about?"></textarea></label>
+  <div><button class="btn btn-primary" type="submit">Create course</button></div>
+</form>
+
+<h2 class="section-title">📋 Course catalog <span class="count">{{ courses|length }}</span></h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Code</th>
+      <th>Title</th>
+      <th>Instructor(s)</th>
+      <th>Credits</th>
+      <th>Enrolled</th>
+      <th class="text-right">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in courses %}
+      <tr>
+        <td class="mono">{{ c.code }}</td>
+        <td><b>{{ c.title }}</b></td>
+        <td class="muted small">
+          {% if c.profs %}
+            {% for p in c.profs %}{{ p.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+            <br><span class="tiny">🧑‍🏫 {{ c.prof_count }} lecturer{% if c.prof_count != 1 %}s{% endif %}</span>
+          {% else %}
+            <span class="muted">— none —</span>
+          {% endif %}
+        </td>
+        <td class="mono">{{ c.credits }}</td>
+        <td>
+          <span class="pill pill-enrolled" style="background:var(--primary-softer);color:var(--primary-2)">
+            🎓 {{ c.enrolled_count }}
+          </span>
+        </td>
+        <td class="actions">
+          <a class="btn btn-ghost btn-xs" href="{{ url_for('main.course_detail', course_id=c.id) }}">👁 View</a>
+
+          <details>
+            <summary class="btn btn-ghost btn-xs" style="list-style:none;cursor:pointer">✏️ Edit</summary>
+            <form method="post" action="{{ url_for('main.admin_course_edit', course_id=c.id) }}"
+                  class="form" style="margin-top:8px; min-width:300px; text-align:left">
+              <label>Title <input name="title" value="{{ c.title }}" required></label>
+              <label>Professors
+                <input name="professors_csv" list="prof-list" type="text"
+                       value="{% for p in c.profs %}{{ p.name }}{% if not loop.last %}, {% endif %}{% endfor %}">
+              </label>
+              <label>Credits
+                <select name="credits">
+                  {% for n in [2,3,4] %}<option {% if c.credits == n %}selected{% endif %}>{{ n }}</option>{% endfor %}
+                </select>
+              </label>
+              <label>Description <textarea name="description"></textarea></label>
+              <button class="btn btn-primary btn-sm" type="submit">Save</button>
+            </form>
+          </details>
+
+          <form method="post" action="{{ url_for('main.admin_course_delete', course_id=c.id) }}" style="display:inline">
+            <button class="btn btn-danger btn-xs" type="submit"
+                    onclick="return confirm('Delete {{ c.code }} — {{ c.title }}? This will also remove all enrollments for it.')">🗑 Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

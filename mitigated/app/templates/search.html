@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{% block content %}
+
+<section class="hero" style="padding:22px 28px">
+  <div>
+    <h1>🔍 Search courses</h1>
+    <p>Find courses by code or title.</p>
+  </div>
+  <form action="{{ url_for('main.search') }}" method="get" class="hero-search">
+    <input name="q" type="text" value="{{ q }}" placeholder="Try: CSC, Database, Security…" autofocus>
+    <button class="btn btn-primary" type="submit">Search</button>
+  </form>
+</section>
+
+{% if q %}
+  {# ✅ FIX #2 — Reflected XSS:
+     `q` is rendered with Jinja2's default auto-escaping (no |safe filter).
+     Special chars become HTML entities, so any injected `<script>` is sent
+     as `&lt;script&gt;` and the browser parses it as literal text. #}
+  <p class="search-echo">
+    Search results for: <strong>{{ q }}</strong>
+  </p>
+
+  {% if error %}
+    <div class="flash flash-error mono small">DB error — {{ error }}</div>
+  {% endif %}
+
+  {% if results %}
+    <div class="grid">
+      {% for item in results %}
+        {% set r = item.row %}
+        <article class="card course-card">
+          <div class="top">
+            <span class="course-code">{{ r['code'] if 'code' in r.keys() else r[1] }}</span>
+            {% if item.enrolled %}
+              <span class="pill pill-enrolled">✓ enrolled</span>
+            {% else %}
+              <span class="pill pill-not-enrolled">not registered</span>
+            {% endif %}
+          </div>
+          <h3>{{ r['title'] if 'title' in r.keys() else r[2] }}</h3>
+          <p class="meta">👨‍🏫 {{ r['instructor'] if 'instructor' in r.keys() else r[3] }}</p>
+          {% if not item.enrolled and me.role == 'student' %}
+            <div class="contact-ta">
+              ℹ️ Not registered — contact your TA to enroll.
+            </div>
+          {% endif %}
+          {% if item.row['id'] is not none %}
+            <div class="actions">
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('main.course_detail', course_id=r['id']) }}">View →</a>
+            </div>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    {% if not error %}
+      <p class="muted">No results.</p>
+    {% endif %}
+  {% endif %}
+
+  {% if sql_used %}
+    <details class="debug-sql">
+      <summary>🛡️ Debug — SQL executed (parameterized)</summary>
+      <pre class="mono">{{ sql_used }}
+-- params: ('%{{ q }}%', '%{{ q }}%')</pre>
+      <p class="small muted">
+        The user's input is bound as a parameter — never spliced into the SQL string —
+        so it cannot be interpreted as SQL syntax.
+      </p>
+    </details>
+  {% endif %}
+{% else %}
+  <p class="muted">Type a query above to search the course catalog.</p>
+{% endif %}
+
+{% endblock %}

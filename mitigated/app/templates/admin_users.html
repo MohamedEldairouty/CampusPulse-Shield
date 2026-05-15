@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Manage students{% endblock %}
+{% block content %}
+
+<h1>🎓 Manage {% if session.role == 'admin' %}students &amp; TAs{% else %}students{% endif %}</h1>
+<p class="muted">
+  {% if session.role == 'admin' %}
+    Add, edit, remove students and TAs. Promote students to TA, or demote TAs back to student.
+  {% else %}
+    Add, edit, or remove student accounts.
+  {% endif %}
+</p>
+
+<h2 class="section-title">➕ Add a new {% if session.role == 'admin' %}user{% else %}student{% endif %}</h2>
+<form method="post" action="{{ url_for('main.admin_user_create') }}" class="card form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="form-grid">
+    <label>Full name <input name="full_name" type="text" required></label>
+    <label>Username <input name="username" type="text" required></label>
+  </div>
+  <div class="form-grid">
+    <label>Email <input name="email" type="email" required></label>
+    <label>Initial password <span class="muted small">(default: Welcome123!)</span>
+      <input name="password" type="text" placeholder="Welcome123!">
+    </label>
+  </div>
+  <div class="form-grid">
+    <label>Major <input name="major" type="text" placeholder="e.g. Computer Engineering"></label>
+    <label>Year
+      <select name="year">
+        <option value="">— Not set —</option>
+        <option value="Year 1">Year 1</option>
+        <option value="Year 2">Year 2</option>
+        <option value="Year 3">Year 3</option>
+        <option value="Year 4" selected>Year 4</option>
+        <option value="Year 5">Year 5</option>
+      </select>
+      <span class="muted tiny">TA accounts are auto-set to 'Faculty'.</span>
+    </label>
+  </div>
+  {% if session.role == 'admin' %}
+    <label>Role
+      <select name="role">
+        <option value="student" selected>🎓 Student</option>
+        <option value="ta">🧑‍🏫 Teaching Assistant</option>
+      </select>
+    </label>
+  {% endif %}
+  <div><button class="btn btn-primary" type="submit">Create user</button></div>
+</form>
+
+<h2 class="section-title">📋 {% if session.role == 'admin' %}Students &amp; TAs{% else %}Students{% endif %}
+  <span class="count">{{ users|length }}</span></h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>User</th>
+      <th>Email</th>
+      <th>Major / Year</th>
+      <th>Role</th>
+      <th>GPA</th>
+      <th class="text-right">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+      <tr>
+        <td class="mono">{{ u.id }}</td>
+        <td>
+          <a href="{{ url_for('main.view_profile', user_id=u.id) }}">
+            <b>{{ u.full_name }}</b><br>
+            <span class="muted small">@{{ u.username }}</span>
+          </a>
+        </td>
+        <td class="muted small">{{ u.email }}</td>
+        <td class="muted small">
+          {{ u.major or '—' }}
+          {% if u.year %}<br>{{ u.year }}{% endif %}
+        </td>
+        <td>
+          {% if u.role == 'ta' %}<span class="role-pill role-ta">🧑‍🏫 TA</span>
+          {% else %}<span class="role-pill role-student">🎓 student</span>{% endif %}
+        </td>
+        <td>
+          {% if u.gpa is not none %}
+            {% set cls = 'high' if u.gpa >= 3.5 else ('mid' if u.gpa >= 2.5 else 'low') %}
+            <span class="gpa-pill {{ cls }}" title="{% if u.role == 'ta' %}Pre-graduation GPA{% else %}Current weighted GPA{% endif %}">
+              {{ "%.2f"|format(u.gpa) }}
+            </span>
+          {% else %}
+            <span class="gpa-pill none">—</span>
+          {% endif %}
+        </td>
+        <td class="actions">
+          <details>
+            <summary class="btn btn-ghost btn-xs" style="list-style:none;cursor:pointer">✏️ Edit</summary>
+            <form method="post" action="{{ url_for('main.admin_user_edit', user_id=u.id) }}"
+                  class="form" style="margin-top:8px; min-width:260px; text-align:left">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <label>Full name <input name="full_name" value="{{ u.full_name }}" required></label>
+              <label>Email <input name="email" type="email" value="{{ u.email }}" required></label>
+              <label>Major <input name="major" value="{{ u.major }}"></label>
+              <label>Year
+                {% if u.role == 'student' %}
+                  <input name="year" value="{{ u.year }}" placeholder="Year 4">
+                {% else %}
+                  <input type="text" value="Faculty" disabled>
+                {% endif %}
+              </label>
+              <button class="btn btn-primary btn-sm" type="submit">Save</button>
+            </form>
+          </details>
+
+          {# ✅ FIX #3 — CSRF token attached + server-side role whitelist. #}
+          {% if session.role == 'admin' %}
+            {% if u.role == 'student' %}
+              <form method="post" action="{{ url_for('main.admin_user_set_role') }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="target_id" value="{{ u.id }}">
+                <input type="hidden" name="target_role" value="ta">
+                <button class="btn btn-primary btn-xs" type="submit">↑ Promote to TA</button>
+              </form>
+            {% else %}
+              <form method="post" action="{{ url_for('main.admin_user_set_role') }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="target_id" value="{{ u.id }}">
+                <input type="hidden" name="target_role" value="student">
+                <button class="btn btn-ghost btn-xs" type="submit">↓ Demote to student</button>
+              </form>
+            {% endif %}
+          {% endif %}
+
+          <form method="post" action="{{ url_for('main.admin_user_delete', user_id=u.id) }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-xs" type="submit"
+                    onclick="return confirm('Delete {{ u.full_name }}? This cannot be undone.')">🗑 Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}{{ course.code }} — {{ course.title }}{% endblock %}
+{% block content %}
+
+<section class="course-hero">
+  <span class="course-code">{{ course.code }}</span>
+  <h1>{{ course.title }}</h1>
+  <p class="meta">
+    👨‍🏫
+    {% if profs %}
+      {% for p in profs %}{{ p.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+    {% else %}
+      <span style="opacity:.8">No professor assigned</span>
+    {% endif %}
+    · {{ course.credits }} credits
+    · 🎓 {{ enrolled_students|length }} enrolled
+    · 🧑‍🏫 {{ profs|length }} lecturer{% if profs|length != 1 %}s{% endif %}
+  </p>
+  {% if course.description %}
+    <p class="desc">{{ course.description }}</p>
+  {% endif %}
+</section>
+
+{% if me.role == 'student' %}
+  {% if am_i_enrolled %}
+    <div class="flash flash-success">
+      ✓ You are enrolled in this course
+      {% if my_enrollment and my_enrollment.prof_name %}with <b>{{ my_enrollment.prof_name }}</b>{% endif %}.
+      {% if my_enrollment and my_enrollment.grade %}
+        {% set cls = my_enrollment.grade.replace('+','p').replace('-','-') %}
+        Your grade: <span class="grade-pill grade-{{ cls }}">{{ my_enrollment.grade }}</span>
+      {% else %}
+        <span class="grade-pill grade-ungraded">Ungraded</span>
+      {% endif %}
+    </div>
+
+    {% if not my_enrollment or not my_enrollment.grade %}
+      <form action="{{ url_for('main.student_self_withdraw', course_id=course.id) }}"
+            method="post" style="margin-top:10px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-danger btn-sm" type="submit"
+                onclick="return confirm('Withdraw yourself from {{ course.code }}? This cannot be undone.')">
+          🚪 Withdraw from this course
+        </button>
+        <span class="muted small" style="margin-left:8px">
+          You can self-withdraw while the course is still ungraded.
+        </span>
+      </form>
+    {% else %}
+      <p class="muted small" style="margin-top:10px">
+        🔒 This course is already graded. Only a TA can remove the enrollment.
+      </p>
+    {% endif %}
+  {% else %}
+    <div class="contact-ta" style="font-size:.95rem">
+      ℹ️ You're not registered for this course. Contact a TA or admin to enroll.
+    </div>
+  {% endif %}
+{% endif %}
+
+<h2 class="section-title">🎓 Enrolled students <span class="count">{{ enrolled_students|length }}</span></h2>
+{% if enrolled_students %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Student</th>
+        <th>Email</th>
+        <th>Lecturer</th>
+        {% if me.role in ('ta','admin') %}
+          <th>Grade</th>
+          <th class="text-right">Actions</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in enrolled_students %}
+        <tr>
+          <td>
+            <a href="{{ url_for('main.view_profile', user_id=s.id) }}">
+              <b>{{ s.full_name }}</b>
+              <span class="muted small">· @{{ s.username }}</span>
+            </a>
+          </td>
+          <td class="muted small">{{ s.email }}</td>
+          <td class="muted small">
+            {% if s.prof_name %}{{ s.prof_name }}
+            {% else %}<span class="muted">— unassigned —</span>{% endif %}
+          </td>
+
+          {% if me.role in ('ta','admin') %}
+            <td>
+              {% if me.role == 'admin' %}
+                {# 👑 Admin-only: inline grade editor — CSRF protected. #}
+                <form class="grade-form"
+                      action="{{ url_for('main.grade_student', course_id=course.id) }}" method="post">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="student_id" value="{{ s.id }}">
+                  <select name="grade">
+                    {% for g in grade_options %}
+                      <option value="{{ g }}" {% if (s.grade or '') == g %}selected{% endif %}>
+                        {% if g %}{{ g }}{% else %}— ungraded —{% endif %}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn-primary btn-xs" type="submit">Save</button>
+                </form>
+              {% else %}
+                {# TA: read-only grade view. Grading is admin-only. #}
+                {% if s.grade %}
+                  {% set cls = s.grade.replace('+','p').replace('-','-') %}
+                  <span class="grade-pill grade-{{ cls }}">{{ s.grade }}</span>
+                {% else %}
+                  <span class="grade-pill grade-ungraded">Ungraded</span>
+                {% endif %}
+              {% endif %}
+            </td>
+            <td class="actions">
+              {% if s.grade and me.role == 'ta' %}
+                {# Policy: TAs cannot withdraw a graded enrollment — only the admin can. #}
+                <span class="muted small" title="This enrollment is graded — only an admin can withdraw.">🔒 graded</span>
+              {% else %}
+                <form action="{{ url_for('main.withdraw_student', course_id=course.id) }}" method="post" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="student_id" value="{{ s.id }}">
+                  <button class="btn btn-danger btn-xs" type="submit"
+                          onclick="return confirm('Withdraw {{ s.full_name }} from {{ course.code }}?{% if s.grade %} (NOTE: this is a graded course){% endif %}')">Withdraw</button>
+                </form>
+              {% endif %}
+            </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p class="muted">No students enrolled yet.</p>
+{% endif %}
+
+{% if me.role in ('ta','admin') and other_students %}
+  <div class="enrollment-card">
+    <h2>➕ Enroll a student</h2>
+    <p class="muted small">Pick a student that isn't yet enrolled in this course.</p>
+    <form action="{{ url_for('main.enroll_student', course_id=course.id) }}" method="post" class="pickline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <select name="student_id" required>
+        <option value="">— Select a student —</option>
+        {% for s in other_students %}
+          <option value="{{ s.id }}">{{ s.full_name }} · @{{ s.username }}</option>
+        {% endfor %}
+      </select>
+      {% if profs|length > 1 %}
+        <select name="professor_id" required>
+          <option value="">— Select a lecturer —</option>
+          {% for p in profs %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+      <button class="btn btn-primary" type="submit">Enroll</button>
+    </form>
+    {% if profs|length > 1 %}
+      <p class="muted tiny" style="margin-top:6px">
+        ℹ️ This course is co-taught — you must pick which lecturer the student is registering with.
+      </p>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% endblock %}

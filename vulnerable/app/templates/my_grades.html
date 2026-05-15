@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}My grades{% endblock %}
+{% block content %}
+
+<h1>📝 My grades</h1>
+<p class="muted">Your private grade report. Only you and the admin can see this — TAs and other students cannot.</p>
+
+{# ─── GPA hero (always shown, even when 0 graded courses) ─── #}
+<div class="gpa-card">
+  <div>
+    {% if gpa is not none %}
+      <div class="gpa-big">{{ "%.2f"|format(gpa) }}</div>
+      <div class="gpa-scale">/ 4.0 cumulative GPA</div>
+    {% else %}
+      <div class="gpa-big">—</div>
+      <div class="gpa-scale gpa-empty">No graded courses yet</div>
+    {% endif %}
+  </div>
+  <div class="gpa-meta">
+    <b>{{ graded_credits }}</b> of <b>{{ total_credits }}</b> credit{% if total_credits != 1 %}s{% endif %} graded<br>
+    <b>{{ my_courses|length }}</b> course{% if my_courses|length != 1 %}s{% endif %} enrolled this semester<br>
+    <span style="opacity:.85">Weighted average — each grade × course credits ÷ total graded credits.</span>
+  </div>
+</div>
+
+{% if my_courses %}
+  {% set graded   = my_courses | selectattr('grade') | list %}
+  {% set ungraded = my_courses | rejectattr('grade') | list %}
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="ico">📚</span>
+      <div class="label">Enrolled</div>
+      <div class="value">{{ my_courses|length }}</div>
+    </div>
+    <div class="stat-card">
+      <span class="ico">✅</span>
+      <div class="label">Graded</div>
+      <div class="value">{{ graded|length }}</div>
+    </div>
+    <div class="stat-card">
+      <span class="ico">⏳</span>
+      <div class="label">Ungraded</div>
+      <div class="value">{{ ungraded|length }}</div>
+    </div>
+  </div>
+
+  <h2 class="section-title">📋 Grade report</h2>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Course</th>
+        <th>Lecturer</th>
+        <th>Credits</th>
+        <th>Grade</th>
+        <th>Points</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in my_courses %}
+        <tr>
+          <td>
+            <a href="{{ url_for('main.course_detail', course_id=c.id) }}">
+              <span class="course-code">{{ c.code }}</span>
+              <b style="margin-left:8px">{{ c.title }}</b>
+            </a>
+          </td>
+          <td class="muted small">
+            {% if c.my_prof %}{{ c.my_prof }}
+            {% else %}<span class="muted">— unassigned —</span>{% endif %}
+          </td>
+          <td class="mono">{{ c.credits }}</td>
+          <td>
+            {% if c.grade %}
+              {% set cls = c.grade.replace('+','p').replace('-','-') %}
+              <span class="grade-pill grade-{{ cls }}">{{ c.grade }}</span>
+            {% else %}
+              <span class="grade-pill grade-ungraded">Ungraded</span>
+            {% endif %}
+          </td>
+          <td class="mono muted small">
+            {% if c.grade and c.grade in grade_points %}
+              {{ "%.1f"|format(grade_points[c.grade]) }} × {{ c.credits }}
+              = <b>{{ "%.1f"|format(grade_points[c.grade] * c.credits) }}</b>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="muted small" style="margin-top:14px">
+    🔒 Grades are private. You can self-withdraw from <b>ungraded</b> courses only — once a grade is recorded, only a TA can remove the enrollment, and only an admin can edit the grade.
+  </p>
+{% else %}
+  <div class="card">
+    <p class="muted">You're not enrolled in any courses yet.</p>
+    <p class="muted small">Contact a TA to register for courses.</p>
+  </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card center">
+    <h1>
+      {% if code == 400 %}🛡️ {% elif code == 403 %}🚫 {% else %}⚠️ {% endif %}
+      {{ title }}
+    </h1>
+    <p class="muted">{{ message }}</p>
+    <p class="mono small" style="margin-top:18px">HTTP {{ code }}</p>
+    <p style="margin-top:14px">
+      <a class="btn btn-ghost" href="{{ url_for('main.dashboard') if session.get('user_id') else url_for('auth.login') }}">
+        ← Back to safety
+      </a>
+    </p>
+  </div>
+</div>
+{% endblock %}

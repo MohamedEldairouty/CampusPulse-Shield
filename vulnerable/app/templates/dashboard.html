@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div>
+    <h1>Hi {{ me.username }} 👋</h1>
+    <p>
+      {% if me.role == 'student' %}
+        Here are your enrolled courses for this semester.
+      {% elif me.role == 'ta' %}
+        Teaching Assistant dashboard — manage students and enrollments.
+      {% else %}
+        Administrator dashboard — full control over users, courses, and roles.
+      {% endif %}
+    </p>
+  </div>
+  <form action="{{ url_for('main.search') }}" method="get" class="hero-search">
+    <input name="q" type="text" placeholder="🔍  Search courses…">
+    <button class="btn btn-primary" type="submit">Search</button>
+  </form>
+</section>
+
+{# ─── student view: enrolled courses with grade pills ──────────────── #}
+{% if me.role == 'student' %}
+  <h2 class="section-title">📚 My courses <span class="count">{{ my_courses|length }}</span></h2>
+  {% if my_courses %}
+    <div class="grid">
+      {% for c in my_courses %}
+        <article class="card course-card">
+          <div class="top">
+            <span class="course-code">{{ c.code }}</span>
+            {% if c.grade %}
+              {% set cls = c.grade.replace('+','p').replace('-','-') %}
+              <span class="grade-pill grade-{{ cls }}">{{ c.grade }}</span>
+            {% else %}
+              <span class="grade-pill grade-ungraded">Ungraded</span>
+            {% endif %}
+          </div>
+          <h3>{{ c.title }}</h3>
+          <p class="meta">
+            👨‍🏫
+            {% if c.my_prof %}{{ c.my_prof }}
+            {% else %}{% for p in c.profs %}{{ p.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+          </p>
+          <p class="meta tiny">{{ c.credits }} cr</p>
+          <div class="actions">
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('main.course_detail', course_id=c.id) }}">View →</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+    <p class="muted small" style="margin-top:14px">
+      ℹ️ You can withdraw from any <b>ungraded</b> course yourself from its course page.
+      Graded courses can only be removed by a TA.
+    </p>
+  {% else %}
+    <div class="card">
+      <p class="muted">You're not enrolled in any courses yet.</p>
+      <p class="muted small">Contact a TA to register for courses.</p>
+    </div>
+  {% endif %}
+
+{# ─── TA / admin view: stats + shortcuts (no Search shortcut here) ─── #}
+{% else %}
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="ico">🎓</span>
+      <div class="label">Students</div>
+      <div class="value">{{ stats.students }}</div>
+    </div>
+    {% if me.role == 'admin' %}
+    <div class="stat-card">
+      <span class="ico">🧑‍🏫</span>
+      <div class="label">TAs</div>
+      <div class="value">{{ stats.tas }}</div>
+    </div>
+    {% endif %}
+    <div class="stat-card">
+      <span class="ico">📚</span>
+      <div class="label">Courses</div>
+      <div class="value">{{ stats.courses }}</div>
+    </div>
+    {% if me.role == 'admin' %}
+    <div class="stat-card">
+      <span class="ico">👨‍🏫</span>
+      <div class="label">Professors</div>
+      <div class="value">{{ stats.professors }}</div>
+    </div>
+    {% endif %}
+    <div class="stat-card">
+      <span class="ico">🔗</span>
+      <div class="label">Enrollments</div>
+      <div class="value">{{ stats.enrollments }}</div>
+    </div>
+  </div>
+
+  <h2 class="section-title">🚀 Quick actions</h2>
+  <div class="grid">
+    <a class="card course-card" href="{{ url_for('main.admin_users') }}" style="text-decoration:none;color:inherit">
+      <h3>🎓 Manage {% if me.role == 'admin' %}students &amp; TAs{% else %}students{% endif %}</h3>
+      <p class="meta">
+        {% if me.role == 'admin' %}Add, edit, remove students &amp; TAs.
+        {% else %}Add, edit, remove student accounts.{% endif %}
+      </p>
+    </a>
+    {% if me.role == 'admin' %}
+    <a class="card course-card" href="{{ url_for('main.admin_courses') }}" style="text-decoration:none;color:inherit">
+      <h3>⚙️ Manage courses</h3>
+      <p class="meta">Create, edit, or remove course offerings.</p>
+    </a>
+    <a class="card course-card" href="{{ url_for('main.admin_professors') }}" style="text-decoration:none;color:inherit">
+      <h3>👨‍🏫 Professors</h3>
+      <p class="meta">Maintain the professor catalog.</p>
+    </a>
+    {% endif %}
+    <a class="card course-card" href="{{ url_for('main.courses_catalog') }}" style="text-decoration:none;color:inherit">
+      <h3>📖 Course catalog</h3>
+      <p class="meta">Browse all courses, view rosters, and grade students.</p>
+    </a>
+  </div>
+{% endif %}
+
+{% endblock %}

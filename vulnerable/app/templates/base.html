@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CampusPulse{% endblock %} · CampusPulse</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="build-{{ BUILD_FLAVOR }} {% if not session.get('user_id') %}is-public{% endif %}">
+
+  {# ──────────── PUBLIC LAYOUT (login / register) ──────────── #}
+  {% if not session.get('user_id') %}
+    <div class="public-shell">
+      <div class="auth-wrap">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flashes" style="position:absolute;top:18px;right:18px;z-index:5;max-width:380px">
+              {% for category, msg in messages %}
+                <div class="flash flash-{{ category }}">{{ msg }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        {% block public_content %}{% endblock %}
+      </div>
+    </div>
+
+  {# ──────────── AUTHENTICATED LAYOUT (topbar + sidebar + main) ──────────── #}
+  {% else %}
+    <header class="topbar">
+      <a class="brand" href="{{ url_for('main.dashboard') }}">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="">
+        <span>CampusPulse</span>
+        {% if BUILD_FLAVOR == 'vulnerable' %}
+          <span class="badge badge-danger" title="Intentionally contains 3 vulnerabilities">🔴 VULNERABLE :{{ BUILD_PORT }}</span>
+        {% else %}
+          <span class="badge badge-success" title="All mitigations applied">🟢 HARDENED :{{ BUILD_PORT }}</span>
+        {% endif %}
+      </a>
+      <nav class="topnav">
+        <span class="who">
+          @{{ session.username }}
+          {% if session.role == 'admin' %}<span class="role-pill role-admin">👑 admin</span>
+          {% elif session.role == 'ta' %}<span class="role-pill role-ta">🧑‍🏫 TA</span>
+          {% else %}<span class="role-pill role-student">🎓 student</span>{% endif %}
+        </span>
+        {% block logout_button %}
+          <a class="logout-link" href="{{ url_for('auth.logout') }}">Log out</a>
+        {% endblock %}
+      </nav>
+    </header>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="me-card">
+          <div class="avatar-sm">{{ session.username[:1]|upper }}</div>
+          <div>
+            <div class="name">{{ session.username }}</div>
+            <div class="role">
+              {% if session.role == 'admin' %}Administrator
+              {% elif session.role == 'ta' %}Teaching Assistant
+              {% else %}Student{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+          <span class="ico">🏠</span> Dashboard
+        </a>
+        <a href="{{ url_for('main.search') }}" class="{% if request.endpoint == 'main.search' %}active{% endif %}">
+          <span class="ico">🔍</span> Search
+        </a>
+        <a href="{{ url_for('main.courses_catalog') }}" class="{% if 'courses' in (request.endpoint or '') and 'admin' not in (request.endpoint or '') %}active{% endif %}">
+          <span class="ico">📚</span> Courses
+        </a>
+        <a href="{{ url_for('main.my_profile') }}" class="{% if request.endpoint == 'main.my_profile' %}active{% endif %}">
+          <span class="ico">🧑</span> My profile
+        </a>
+        {% if session.role == 'student' %}
+          <a href="{{ url_for('main.my_grades') }}" class="{% if request.endpoint == 'main.my_grades' %}active{% endif %}">
+            <span class="ico">📝</span> My grades
+          </a>
+        {% endif %}
+
+        {% if session.role in ('ta', 'admin') %}
+          <div class="group-label">Management</div>
+          <a href="{{ url_for('main.admin_users') }}" class="{% if request.endpoint == 'main.admin_users' %}active{% endif %}">
+            <span class="ico">🎓</span>
+            {% if session.role == 'admin' %}Students &amp; TAs{% else %}Students{% endif %}
+          </a>
+          {% if session.role == 'admin' %}
+            <a href="{{ url_for('main.admin_courses') }}" class="{% if request.endpoint == 'main.admin_courses' %}active{% endif %}">
+              <span class="ico">⚙️</span> Manage courses
+            </a>
+            <a href="{{ url_for('main.admin_professors') }}" class="{% if request.endpoint == 'main.admin_professors' %}active{% endif %}">
+              <span class="ico">👨‍🏫</span> Professors
+            </a>
+          {% endif %}
+        {% endif %}
+      </aside>
+
+      <main class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flashes">
+              {% for category, msg in messages %}
+                <div class="flash flash-{{ category }}">{{ msg }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+
+    <footer class="footer">
+      <span>CampusPulse-Shield — Cyber Security Course Project</span>
+      <span class="sep">•</span>
+      <span>Build: {{ BUILD_FLAVOR }} · Port {{ BUILD_PORT }}</span>
+    </footer>
+  {% endif %}
+
+</body>
+</html>

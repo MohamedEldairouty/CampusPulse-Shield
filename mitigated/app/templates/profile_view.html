@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ profile_user.full_name }}{% endblock %}
+{% block content %}
+
+<div class="profile-card">
+  <div class="avatar-xl">{{ profile_user.username[:1]|upper }}</div>
+  <div class="profile-meta">
+    <h1>{{ profile_user.full_name }}</h1>
+    <p class="muted">
+      @{{ profile_user.username }} ·
+      {% if profile_user.role == 'admin' %}<span class="role-pill role-admin">👑 admin</span>
+      {% elif profile_user.role == 'ta' %}<span class="role-pill role-ta">🧑‍🏫 TA</span>
+      {% else %}<span class="role-pill role-student">🎓 student</span>{% endif %}
+    </p>
+    <div class="meta-row">
+      <span>✉️ {{ profile_user.email }}</span>
+      {% if profile_user.major %}<span>🎓 {{ profile_user.major }}</span>{% endif %}
+      {% if profile_user.year %}<span>📅 {{ profile_user.year }}</span>{% endif %}
+    </div>
+    {% if profile_user.bio %}
+      <p class="bio">{{ profile_user.bio }}</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if profile_user.role == 'student' and courses %}
+  <h2 class="section-title">📚 Enrolled courses <span class="count">{{ courses|length }}</span></h2>
+  <div class="grid">
+    {% for c in courses %}
+      <article class="card course-card">
+        <div class="top">
+          <span class="course-code">{{ c.code }}</span>
+          <span class="credits">{{ c.credits }} cr</span>
+        </div>
+        <h3>{{ c.title }}</h3>
+        <p class="meta">
+          👨‍🏫
+          {% for p in c.profs %}{{ p.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+        </p>
+      </article>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% endblock %}

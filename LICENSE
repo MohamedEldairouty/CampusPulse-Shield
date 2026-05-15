@@ -1,0 +1,19 @@
+CampusPulse-Shield — Academic Use License
+
+Copyright (c) 2026 CampusPulse-Shield Team
+
+This project is developed for academic purposes as part of a university
+Cyber Security course. It deliberately contains exploitable vulnerabilities
+in the `vulnerable/` directory for educational demonstration. It is NOT
+intended for production use.
+
+Permission is granted to view, study, and reference this work for academic
+and educational purposes. Redistribution or use outside an academic context
+is not permitted without written consent from the authors.
+
+The original CampusPulse project (https://github.com/Negm24/CampusPulse) is
+the property of its respective authors and is referenced here solely as the
+upstream inspiration for this security-focused derivative.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. THE AUTHORS
+DISCLAIM ALL LIABILITY FOR DAMAGES ARISING FROM ITS USE OR MISUSE.

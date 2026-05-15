@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Manage professors{% endblock %}
+{% block content %}
+
+<h1>👨‍🏫 Manage professors</h1>
+<p class="muted">Maintain the professor catalog. A professor can teach multiple courses; a course can be co-taught by several professors.</p>
+
+<h2 class="section-title">➕ Add a new professor</h2>
+<form method="post" action="{{ url_for('main.admin_professor_create') }}" class="card form">
+  <label>Name <input name="name" type="text" placeholder="e.g. Dr. Hala Ibrahim" required></label>
+  <div><button class="btn btn-primary" type="submit">Add professor</button></div>
+</form>
+
+<h2 class="section-title">📋 Professors <span class="count">{{ profs|length }}</span></h2>
+{% if profs %}
+<table class="table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Courses</th>
+      <th class="text-right">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in profs %}
+      <tr>
+        <td><b>{{ p.name }}</b></td>
+        <td class="muted small">
+          {% if p.codes %}
+            {% for code in p.codes %}<span class="course-code" style="margin-right:4px">{{ code }}</span>{% endfor %}
+            <br><span class="tiny">{{ p.course_count }} course{% if p.course_count != 1 %}s{% endif %}</span>
+          {% else %}
+            <span class="muted">— not assigned to any course —</span>
+          {% endif %}
+        </td>
+        <td class="actions">
+          <details>
+            <summary class="btn btn-ghost btn-xs" style="list-style:none;cursor:pointer">✏️ Rename</summary>
+            <form method="post" action="{{ url_for('main.admin_professor_edit', prof_id=p.id) }}"
+                  class="form" style="margin-top:8px; min-width:240px; text-align:left">
+              <label>Name <input name="name" value="{{ p.name }}" required></label>
+              <button class="btn btn-primary btn-sm" type="submit">Save</button>
+            </form>
+          </details>
+
+          <form method="post" action="{{ url_for('main.admin_professor_delete', prof_id=p.id) }}" style="display:inline">
+            <button class="btn btn-danger btn-xs" type="submit"
+                    onclick="return confirm('Delete professor {{ p.name }}? They will be removed from all courses they teach.')">🗑 Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+  <p class="muted">No professors yet — add one above.</p>
+{% endif %}
+
+{% endblock %}

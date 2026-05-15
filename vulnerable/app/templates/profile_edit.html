@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}My profile{% endblock %}
+{% block content %}
+
+<div class="profile-card">
+  <div class="avatar-xl">{{ me.username[:1]|upper }}</div>
+  <div class="profile-meta">
+    <h1>{{ me.full_name }}</h1>
+    <p class="muted">
+      @{{ me.username }} ·
+      {% if me.role == 'admin' %}<span class="role-pill role-admin">👑 admin</span>
+      {% elif me.role == 'ta' %}<span class="role-pill role-ta">🧑‍🏫 TA</span>
+      {% else %}<span class="role-pill role-student">🎓 student</span>{% endif %}
+    </p>
+    <div class="meta-row">
+      <span>✉️ {{ me.email }}</span>
+      {% if me.major %}<span>🎓 {{ me.major }}</span>{% endif %}
+      {% if me.year %}<span>📅 {{ me.year }}</span>{% endif %}
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title">✏️ Edit profile</h2>
+<form method="post" class="card form">
+  <div class="form-grid">
+    <label>Full name
+      <input name="full_name" type="text" value="{{ me.full_name }}" required>
+    </label>
+    <label>Email
+      <input name="email" type="email" value="{{ me.email }}" required>
+    </label>
+  </div>
+  <div class="form-grid">
+    <label>Major
+      <input name="major" type="text" value="{{ me.major }}" placeholder="e.g. Computer Engineering">
+    </label>
+    <label>Year
+      {% if me.role == 'student' %}
+        <select name="year">
+          <option value="" {% if not me.year %}selected{% endif %}>— Not set —</option>
+          {% for y in ['Year 1','Year 2','Year 3','Year 4','Year 5'] %}
+            <option value="{{ y }}" {% if me.year == y %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      {% else %}
+        <input type="text" value="Faculty" disabled>
+        <span class="muted small">Locked for non-student accounts.</span>
+      {% endif %}
+    </label>
+  </div>
+  <label>Bio
+    <textarea name="bio" placeholder="Tell us a bit about yourself…">{{ me.bio }}</textarea>
+  </label>
+  <label>New password <span class="muted small">(leave blank to keep current)</span>
+    <input name="new_password" type="password" autocomplete="new-password" minlength="6">
+  </label>
+  <label class="muted small">Username (read-only)
+    <input type="text" value="{{ me.username }}" disabled>
+  </label>
+  <div>
+    <button class="btn btn-primary" type="submit">💾 Save changes</button>
+  </div>
+</form>
+
+{% if me.role == 'student' and my_courses %}
+  <h2 class="section-title">📚 My courses <span class="count">{{ my_courses|length }}</span></h2>
+  <div class="grid">
+    {% for c in my_courses %}
+      <article class="card course-card">
+        <div class="top">
+          <span class="course-code">{{ c.code }}</span>
+          <span class="credits">{{ c.credits }} cr</span>
+        </div>
+        <h3>{{ c.title }}</h3>
+        <p class="meta">
+          👨‍🏫
+          {% for p in c.profs %}{{ p.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+        </p>
+      </article>
+    {% endfor %}
+  </div>
+  <p class="muted small" style="margin-top:14px">
+    ℹ️ Want to withdraw from a course? Contact your TA.
+  </p>
+{% endif %}
+
+{% endblock %}

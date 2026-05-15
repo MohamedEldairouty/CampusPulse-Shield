@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{% block content %}
+
+<section class="hero" style="padding:22px 28px">
+  <div>
+    <h1>🔍 Search courses</h1>
+    <p>Find courses by code or title.</p>
+  </div>
+  <form action="{{ url_for('main.search') }}" method="get" class="hero-search">
+    <input name="q" type="text" value="{{ q }}" placeholder="Try: CSC, Database, Security…" autofocus>
+    <button class="btn btn-primary" type="submit">Search</button>
+  </form>
+</section>
+
+{% if q %}
+  {# ⚠️  VULN #2 — Reflected XSS sink: `q` rendered through |safe. #}
+  <p class="search-echo">
+    Search results for: <strong>{{ q|safe }}</strong>
+  </p>
+
+  {% if error %}
+    <div class="flash flash-error mono small">DB error — {{ error }}</div>
+  {% endif %}
+
+  {% if results %}
+    <div class="grid">
+      {% for item in results %}
+        {% set r = item.row %}
+        <article class="card course-card">
+          <div class="top">
+            <span class="course-code">{{ r['code'] if 'code' in r.keys() else r[1] }}</span>
+            {% if item.enrolled %}
+              <span class="pill pill-enrolled">✓ enrolled</span>
+            {% else %}
+              <span class="pill pill-not-enrolled">not registered</span>
+            {% endif %}
+          </div>
+          <h3>{{ r['title'] if 'title' in r.keys() else r[2] }}</h3>
+          <p class="meta">👨‍🏫 {{ r['instructor'] if 'instructor' in r.keys() else r[3] }}</p>
+          {% if not item.enrolled and me.role == 'student' %}
+            <div class="contact-ta">
+              ℹ️ Not registered — contact your TA to enroll.
+            </div>
+          {% endif %}
+          {% if item.row['id'] is not none %}
+            <div class="actions">
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('main.course_detail', course_id=r['id']) }}">View →</a>
+            </div>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    {% if not error %}
+      <p class="muted">No results.</p>
+    {% endif %}
+  {% endif %}
+
+  {% if sql_used %}
+    <details class="debug-sql">
+      <summary>🐞 Debug — SQL executed</summary>
+      <pre class="mono">{{ sql_used }}</pre>
+      <p class="small muted">
+        This panel is intentionally exposed in the vulnerable build so the
+        SQLi injection point is easy to point at during the live demo.
+      </p>
+    </details>
+  {% endif %}
+{% else %}
+  <p class="muted">Type a query above to search the course catalog.</p>
+{% endif %}
+
+{% endblock %}
