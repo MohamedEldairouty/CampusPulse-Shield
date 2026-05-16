@@ -28,7 +28,9 @@ CampusPulse-Shield ships in two parallel deployments:
 **The chain:**
 > 🔍 SQL Injection (recon) → 💉 Reflected XSS (delivery) → 🪤 CSRF (escalation)
 >
-> End goal: a regular student promotes themselves to **admin** without ever knowing the admin's password.
+> Two end goals, same chain, no admin password ever needed:
+> - 🥷 **Grade tampering** — the attacker silently gives themselves an A+ in a course they're enrolled in
+> - 👑 **Privilege escalation** — a regular student promotes themselves to admin (or TA)
 
 ---
 
