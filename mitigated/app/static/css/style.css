@@ -150,11 +150,18 @@ h3 { font-size: 1.04rem; }
   border-radius: var(--radius-sm);
   display: flex; gap: 10px; align-items: center;
 }
-.sidebar .me-card .avatar-sm {
-  width: 38px; height: 38px; border-radius: 50%;
+/* Generic gradient avatar — used in announcements and elsewhere. */
+.avatar-sm {
+  width: 36px; height: 36px; border-radius: 50%;
   background: var(--grad); color: #fff;
   display: grid; place-items: center; font-weight: 700;
-  box-shadow: 0 3px 10px rgba(102,126,234,.4);
+  font-size: .95rem;
+  box-shadow: 0 3px 10px rgba(102,126,234,.35);
+  flex-shrink: 0;
+}
+/* Sidebar variant is slightly larger; specificity makes this rule win. */
+.sidebar .me-card .avatar-sm {
+  width: 38px; height: 38px;
 }
 .sidebar .me-card .name { font-weight: 600; font-size: .9rem; line-height: 1.2; }
 .sidebar .me-card .role { font-size: .72rem; color: var(--muted); }
@@ -395,6 +402,11 @@ h3 { font-size: 1.04rem; }
   margin-bottom: 10px; padding-bottom: 10px;
   border-bottom: 1px solid var(--line);
 }
+/* Actions cluster on each announcement card.  Defined here (not as an
+   inline style="…") so it survives the mitigated build's strict CSP
+   `style-src 'self'`. Same reason `.inline-form` exists. */
+.announce-actions { margin-left: auto; display: flex; gap: 6px; }
+.inline-form { display: inline; }
 .announce-author { font-size: .95rem; }
 .announce-author .role-pill { margin-left: 6px; vertical-align: middle; }
 .announce-title { margin: 4px 0 10px; font-size: 1.15rem; }

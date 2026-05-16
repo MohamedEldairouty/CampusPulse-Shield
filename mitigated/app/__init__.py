@@ -72,11 +72,38 @@ def create_app() -> Flask:
     # ──────────────────────────────────────────────────────────────────────
     @app.after_request
     def set_security_headers(resp):
+        # 🛡️ Content-Security-Policy
+        #
+        #   script-src 'self'         → blocks inline <script> and remote JS.
+        #                               THIS IS WHAT KILLS THE XSS PAYLOAD.
+        #                               Must stay strict.
+        #
+        #   style-src 'self' 'unsafe-inline'
+        #                             → allows inline style="..." attributes.
+        #                               Pragmatic trade-off:
+        #                                 • templates use inline style="..."
+        #                                   for small layout tweaks (avatar
+        #                                   colors, flex spacing, etc.)
+        #                                 • CSS injection is far less dangerous
+        #                                   than JS injection; the attacker
+        #                                   can't exfiltrate cookies or fire
+        #                                   POSTs from CSS alone.
+        #                                 • Common industry posture.
+        #
+        #   font-src 'self' fonts.gstatic.com
+        #   style-src ... fonts.googleapis.com
+        #                             → allow Google Fonts (Inter + JetBrains
+        #                               Mono) used by the UI.
+        #
+        #   img-src 'self' data: https:
+        #                             → permit user-posted images and base64
+        #                               favicons. Restrict to https remote.
         resp.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "img-src 'self' data:; "
-            "style-src 'self'; "
             "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
             "object-src 'none'; "
             "base-uri 'self'; "
             "frame-ancestors 'none'"
