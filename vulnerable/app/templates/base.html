@@ -77,6 +77,9 @@
         <a href="{{ url_for('main.courses_catalog') }}" class="{% if 'courses' in (request.endpoint or '') and 'admin' not in (request.endpoint or '') %}active{% endif %}">
           <span class="ico">📚</span> Courses
         </a>
+        <a href="{{ url_for('main.announcements') }}" class="{% if 'announcement' in (request.endpoint or '') %}active{% endif %}">
+          <span class="ico">📢</span> Announcements
+        </a>
         <a href="{{ url_for('main.my_profile') }}" class="{% if request.endpoint == 'main.my_profile' %}active{% endif %}">
           <span class="ico">🧑</span> My profile
         </a>

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Announcements{% endblock %}
+{% block content %}
+
+<section class="hero" style="padding:22px 28px">
+  <div>
+    <h1>📢 Announcements</h1>
+    <p>News & updates from the CampusPulse community.</p>
+  </div>
+  <a href="{{ url_for('main.announcement_new') }}" class="btn btn-primary">+ New post</a>
+</section>
+
+{% if announcements %}
+  <div class="announce-feed">
+    {% for a in announcements %}
+      <article class="card announce-card">
+        <header class="announce-head">
+          <div class="avatar-sm" style="background:var(--grad);color:#fff;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-weight:700">
+            {{ a.username[:1]|upper }}
+          </div>
+          <div>
+            <div class="announce-author">
+              <a href="{{ url_for('main.view_profile', user_id=a.author_id) }}"><b>{{ a.full_name }}</b></a>
+              <span class="muted small">· @{{ a.username }}</span>
+              {% if a.role == 'admin' %}<span class="role-pill role-admin">👑 admin</span>
+              {% elif a.role == 'ta' %}<span class="role-pill role-ta">🧑‍🏫 TA</span>
+              {% else %}<span class="role-pill role-student">🎓 student</span>{% endif %}
+            </div>
+            <div class="muted tiny">📅 {{ a.created_at }}</div>
+          </div>
+          {# Edit: only the author can edit their own post. #}
+          {# Delete: author always; admin can delete anything; TA can delete student posts. #}
+          {% set i_am_author = (a.author_id == session.user_id) %}
+          {% set can_delete = i_am_author
+                              or session.role == 'admin'
+                              or (session.role == 'ta' and a.role == 'student') %}
+          {% if i_am_author or can_delete %}
+            <div style="margin-left:auto; display:flex; gap:6px">
+              {% if i_am_author %}
+                <a class="btn btn-ghost btn-xs"
+                   href="{{ url_for('main.announcement_edit', ann_id=a.id) }}">✏️ Edit</a>
+              {% endif %}
+              {% if can_delete %}
+                <form method="post" action="{{ url_for('main.announcement_delete', ann_id=a.id) }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-danger btn-xs" type="submit"
+                          onclick="return confirm('Delete this announcement?')">🗑 Delete</button>
+                </form>
+              {% endif %}
+            </div>
+          {% endif %}
+        </header>
+
+        <h2 class="announce-title">
+          {% if a.link_url %}
+            <a href="{{ a.link_url }}">{{ a.title }}</a>
+          {% else %}
+            {{ a.title }}
+          {% endif %}
+        </h2>
+
+        {% if a.image_url %}
+          {% if a.link_url %}
+            <a href="{{ a.link_url }}">
+              <img class="announce-image" src="{{ a.image_url }}" alt="">
+            </a>
+          {% else %}
+            {# No click-through link → open the image itself full-size in a new tab. #}
+            <a href="{{ a.image_url }}" target="_blank" rel="noopener" title="Open full size">
+              <img class="announce-image" src="{{ a.image_url }}" alt="">
+            </a>
+          {% endif %}
+        {% endif %}
+
+        <p class="announce-body">{{ a.body }}</p>
+
+        {% if a.link_url %}
+          <a class="btn btn-ghost btn-sm" href="{{ a.link_url }}">🔗 Open link</a>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card">
+    <p class="muted">No announcements yet — be the first to post!</p>
+  </div>
+{% endif %}
+
+{% endblock %}

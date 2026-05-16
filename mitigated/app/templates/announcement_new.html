@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}New announcement{% endblock %}
+{% block content %}
+
+<h1>📢 Post a new announcement</h1>
+<p class="muted">Share an update, study group, or important link with the CampusPulse community.</p>
+
+<form method="post" class="card form" style="max-width:720px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Title
+    <input name="title" type="text" value="{{ title }}" required autofocus
+           placeholder="e.g. Final exam schedule update">
+  </label>
+
+  <label>Body
+    <textarea name="body" rows="5" required
+              placeholder="Write your announcement here…">{{ body }}</textarea>
+  </label>
+
+  <div class="form-grid">
+    <label>Image URL <span class="muted small">(optional)</span>
+      <input name="image_url" type="text" value="{{ image_url }}"
+             placeholder="https://… or /static/img/…">
+    </label>
+    <label>Link URL <span class="muted small">(optional click-through)</span>
+      <input name="link_url" type="text" value="{{ link_url }}"
+             placeholder="https://… or /search?q=…">
+    </label>
+  </div>
+
+  <p class="muted small">
+    💡 Tips: URLs must start with <code>http://</code>, <code>https://</code>, or <code>/</code>.
+    If you attach an image and a link, the image becomes clickable.
+  </p>
+
+  <div style="display:flex; gap:8px">
+    <button class="btn btn-primary" type="submit">📤 Publish</button>
+    <a class="btn btn-ghost" href="{{ url_for('main.announcements') }}">Cancel</a>
+  </div>
+</form>
+
+{% endblock %}

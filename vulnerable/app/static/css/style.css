@@ -387,6 +387,36 @@ h3 { font-size: 1.04rem; }
 .gpa-pill.low  { background: #fef3c7; color: #92400e; }   /* < 2.5 */
 .gpa-pill.none { background: #e5e7eb; color: #6b7280; font-family: var(--font); font-weight: 600; font-style: italic; }
 
+/* ───── announcements feed ───── */
+.announce-feed { display: grid; gap: 16px; margin-top: 4px; }
+.announce-card { padding: 18px 22px; }
+.announce-head {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 10px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.announce-author { font-size: .95rem; }
+.announce-author .role-pill { margin-left: 6px; vertical-align: middle; }
+.announce-title { margin: 4px 0 10px; font-size: 1.15rem; }
+.announce-title a { color: var(--ink); }
+.announce-title a:hover { color: var(--primary-2); text-decoration: underline; }
+.announce-body { color: var(--ink-2); margin: 6px 0 12px; white-space: pre-wrap; }
+.announce-image {
+  display: block;
+  /* Show the WHOLE image (no crop) — handles A4 portraits without chopping. */
+  max-width: 100%;
+  max-height: 720px;
+  margin: 8px auto 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg);            /* subtle letterbox tone when image is narrower */
+  object-fit: contain;
+}
+/* Make the image obviously openable — pointer + hover lift. */
+.announce-card a .announce-image,
+.announce-card a > .announce-image { cursor: zoom-in; transition: transform .12s ease, box-shadow .15s ease; }
+.announce-card a:hover .announce-image { transform: translateY(-1px); box-shadow: var(--shadow); }
+
 /* ───── tables ───── */
 .table {
   width: 100%; border-collapse: separate; border-spacing: 0;

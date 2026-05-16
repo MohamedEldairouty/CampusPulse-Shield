@@ -68,6 +68,17 @@ CREATE TABLE enrollments (
     FOREIGN KEY (course_id)    REFERENCES courses(id)     ON DELETE CASCADE,
     FOREIGN KEY (professor_id) REFERENCES professors(id)  ON DELETE SET NULL
 );
+
+CREATE TABLE announcements (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL,
+    title      TEXT NOT NULL,
+    body       TEXT NOT NULL,
+    image_url  TEXT,                          -- optional embedded image
+    link_url   TEXT,                          -- optional click-through URL (http/https/relative only)
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 # (username, email, password, role, full_name, bio, major, year, gpa)
@@ -147,6 +158,24 @@ ENROLLMENTS_BY_STUDENT = {
     ],
 }
 
+# (author_username, title, body, image_url, link_url) — seed announcements feed.
+SEED_ANNOUNCEMENTS = [
+    ("Dairo",
+     "Welcome back to CampusPulse 🎉",
+     "Welcome to the new semester. Please review the updated academic calendar "
+     "and make sure your course registrations are finalized by the end of next week. "
+     "TAs are available during office hours to assist with enrollment.",
+     "/static/img/schedule.png",
+     None),
+
+    ("Mariam",
+     "📚 Study group: CSC401 — Web App Security",
+     "I'll be running a weekly study group for CSC401 every Tuesday at 4pm in Lab B. "
+     "We'll cover the OWASP Top 10 and walk through hands-on labs. Drop by if interested!",
+     None,
+     None),
+]
+
 
 def main():
     if os.path.exists(DB_PATH):
@@ -186,6 +215,14 @@ def main():
     # Resolve enrollments — if professor name is None, look up the single
     # professor assigned to the course and use that.
     n_enrollments = 0
+    # Seed announcements.
+    for author, title, body, image_url, link_url in SEED_ANNOUNCEMENTS:
+        conn.execute(
+            "INSERT INTO announcements(user_id, title, body, image_url, link_url) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (user_ids[author], title, body, image_url, link_url),
+        )
+
     for username, items in ENROLLMENTS_BY_STUDENT.items():
         uid = user_ids[username]
         for code, prof_name, grade in items:

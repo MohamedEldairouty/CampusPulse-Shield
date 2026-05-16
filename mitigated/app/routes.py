@@ -875,3 +875,154 @@ def admin_professor_delete(prof_id):
     db.commit()
     flash("Professor removed.", "success")
     return redirect(url_for("main.admin_professors"))
+
+
+# ────────────────────────── announcements ───────────────────────
+# CSRF tokens on create/delete are enforced globally by __init__.py.
+# Announcement body is plain text + auto-escaped → no additional XSS sink here.
+# link_url must start with http/https/relative (`/`) — `javascript:` URLs rejected.
+
+def _valid_link_url(u: str) -> bool:
+    u = (u or "").strip()
+    if not u:
+        return True
+    return u.startswith(("http://", "https://", "/"))
+
+
+@main_bp.route("/announcements")
+@login_required
+def announcements():
+    rows = get_db().execute(
+        "SELECT a.id, a.title, a.body, a.image_url, a.link_url, a.created_at, "
+        "       u.id AS author_id, u.username, u.full_name, u.role "
+        "FROM announcements a JOIN users u ON u.id = a.user_id "
+        "ORDER BY a.created_at DESC, a.id DESC"
+    ).fetchall()
+    return render_template("announcements.html", announcements=rows)
+
+
+@main_bp.route("/announcements/new", methods=["GET", "POST"])
+@login_required
+def announcement_new():
+    if request.method == "POST":
+        title     = (request.form.get("title")     or "").strip()
+        body      = (request.form.get("body")      or "").strip()
+        image_url = (request.form.get("image_url") or "").strip() or None
+        link_url  = (request.form.get("link_url")  or "").strip() or None
+
+        if not (title and body):
+            flash("Title and body are required.", "error")
+            return render_template("announcement_new.html",
+                                   title=title, body=body,
+                                   image_url=image_url or "", link_url=link_url or "")
+        if image_url and not _valid_link_url(image_url):
+            flash("Image URL must start with http://, https://, or /", "error")
+            return render_template("announcement_new.html",
+                                   title=title, body=body,
+                                   image_url=image_url, link_url=link_url or "")
+        if link_url and not _valid_link_url(link_url):
+            flash("Link URL must start with http://, https://, or /", "error")
+            return render_template("announcement_new.html",
+                                   title=title, body=body,
+                                   image_url=image_url or "", link_url=link_url)
+
+        db = get_db()
+        db.execute(
+            "INSERT INTO announcements(user_id, title, body, image_url, link_url) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (session["user_id"], title, body, image_url, link_url),
+        )
+        db.commit()
+        flash("Announcement posted.", "success")
+        return redirect(url_for("main.announcements"))
+
+    return render_template("announcement_new.html",
+                           title="", body="", image_url="", link_url="")
+
+
+def _can_edit_announcement(author_row, me_role, me_id):
+    """Only the author may edit their own announcement."""
+    return author_row["user_id"] == me_id
+
+
+def _can_delete_announcement(author_role, me_role, me_id, author_id):
+    """Author always; admin anything; TA can delete student posts only."""
+    if author_id == me_id:
+        return True
+    if me_role == "admin":
+        return True
+    if me_role == "ta" and author_role == "student":
+        return True
+    return False
+
+
+@main_bp.route("/announcements/<int:ann_id>/edit", methods=["GET", "POST"])
+@login_required
+def announcement_edit(ann_id):
+    db = get_db()
+    ann = db.execute(
+        "SELECT id, user_id, title, body, image_url, link_url FROM announcements WHERE id = ?",
+        (ann_id,),
+    ).fetchone()
+    if not ann:
+        flash("Announcement not found.", "error")
+        return redirect(url_for("main.announcements"))
+    if not _can_edit_announcement(ann, session.get("role"), session.get("user_id")):
+        abort(403)
+
+    if request.method == "POST":
+        title     = (request.form.get("title")     or "").strip()
+        body      = (request.form.get("body")      or "").strip()
+        image_url = (request.form.get("image_url") or "").strip() or None
+        link_url  = (request.form.get("link_url")  or "").strip() or None
+
+        if not (title and body):
+            flash("Title and body are required.", "error")
+            return render_template("announcement_edit.html", ann=ann,
+                                   title=title, body=body,
+                                   image_url=image_url or "", link_url=link_url or "")
+        if image_url and not _valid_link_url(image_url):
+            flash("Image URL must start with http://, https://, or /", "error")
+            return render_template("announcement_edit.html", ann=ann,
+                                   title=title, body=body,
+                                   image_url=image_url, link_url=link_url or "")
+        if link_url and not _valid_link_url(link_url):
+            flash("Link URL must start with http://, https://, or /", "error")
+            return render_template("announcement_edit.html", ann=ann,
+                                   title=title, body=body,
+                                   image_url=image_url or "", link_url=link_url)
+
+        db.execute(
+            "UPDATE announcements SET title=?, body=?, image_url=?, link_url=? WHERE id=?",
+            (title, body, image_url, link_url, ann_id),
+        )
+        db.commit()
+        flash("Announcement updated.", "success")
+        return redirect(url_for("main.announcements"))
+
+    return render_template("announcement_edit.html", ann=ann,
+                           title=ann["title"], body=ann["body"],
+                           image_url=ann["image_url"] or "",
+                           link_url=ann["link_url"] or "")
+
+
+@main_bp.route("/announcements/<int:ann_id>/delete", methods=["POST"])
+@login_required
+def announcement_delete(ann_id):
+    db = get_db()
+    row = db.execute(
+        "SELECT a.user_id, u.role AS author_role "
+        "FROM announcements a JOIN users u ON u.id = a.user_id "
+        "WHERE a.id = ?", (ann_id,),
+    ).fetchone()
+    if not row:
+        flash("Announcement not found.", "error")
+        return redirect(url_for("main.announcements"))
+    if not _can_delete_announcement(
+        row["author_role"], session.get("role"), session.get("user_id"), row["user_id"]
+    ):
+        abort(403)
+    db.execute("DELETE FROM announcements WHERE id = ?", (ann_id,))
+    db.commit()
+    flash("Announcement deleted.", "success")
+    return redirect(url_for("main.announcements"))

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Edit announcement{% endblock %}
+{% block content %}
+
+<h1>✏️ Edit your announcement</h1>
+<p class="muted">Only you can edit your own posts. Other people see the updated version immediately after you save.</p>
+
+<form method="post" class="card form" style="max-width:720px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Title
+    <input name="title" type="text" value="{{ title }}" required autofocus>
+  </label>
+
+  <label>Body
+    <textarea name="body" rows="5" required>{{ body }}</textarea>
+  </label>
+
+  <div class="form-grid">
+    <label>Image URL <span class="muted small">(optional)</span>
+      <input name="image_url" type="text" value="{{ image_url }}"
+             placeholder="https://… or /static/img/…">
+    </label>
+    <label>Link URL <span class="muted small">(optional click-through)</span>
+      <input name="link_url" type="text" value="{{ link_url }}"
+             placeholder="https://… or /search?q=…">
+    </label>
+  </div>
+
+  <p class="muted small">
+    💡 URLs must start with <code>http://</code>, <code>https://</code>, or <code>/</code>.
+  </p>
+
+  <div style="display:flex; gap:8px">
+    <button class="btn btn-primary" type="submit">💾 Save changes</button>
+    <a class="btn btn-ghost" href="{{ url_for('main.announcements') }}">Cancel</a>
+  </div>
+</form>
+
+{% endblock %}
