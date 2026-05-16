@@ -303,14 +303,29 @@ def search():
         except Exception as e:
             error = str(e)
 
+    # Parity with the vulnerable build: mark each row as a real course or not.
+    # Parameterized queries mean only real courses can ever reach this list,
+    # so `is_real_course` is always True here — but we surface the flag for
+    # template symmetry across builds.
+    real_course_keys = {
+        (c["id"], c["code"])
+        for c in get_db().execute("SELECT id, code FROM courses").fetchall()
+    }
+
     enriched = []
     for r in rows:
         try:
             cid = int(r["id"]) if r["id"] is not None else None
         except (KeyError, IndexError, ValueError, TypeError):
             cid = None
+        try:
+            rcode = r["code"]
+        except (KeyError, IndexError, TypeError):
+            rcode = None
         enrolled = _is_enrolled(me["id"], cid) if cid else False
-        enriched.append({"row": r, "enrolled": enrolled})
+        is_real_course = (cid, rcode) in real_course_keys
+        enriched.append({"row": r, "enrolled": enrolled,
+                         "is_real_course": is_real_course})
 
     return render_template(
         "search.html",

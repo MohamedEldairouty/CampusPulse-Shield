@@ -306,14 +306,29 @@ def search():
         except Exception as e:
             error = str(e)
 
+    # Build a set of legitimate (course_id, course_code) pairs so we can tell
+    # genuine course results apart from UNION-injected rows. Real courses
+    # render normally; injected rows additionally reveal their numeric id —
+    # which is the recon detail an attacker needs to craft Stage-3 payloads.
+    real_course_keys = {
+        (c["id"], c["code"])
+        for c in get_db().execute("SELECT id, code FROM courses").fetchall()
+    }
+
     enriched = []
     for r in rows:
         try:
             cid = int(r["id"]) if r["id"] is not None else None
         except (KeyError, IndexError, ValueError, TypeError):
             cid = None
+        try:
+            rcode = r["code"]
+        except (KeyError, IndexError, TypeError):
+            rcode = None
         enrolled = _is_enrolled(me["id"], cid) if cid else False
-        enriched.append({"row": r, "enrolled": enrolled})
+        is_real_course = (cid, rcode) in real_course_keys
+        enriched.append({"row": r, "enrolled": enrolled,
+                         "is_real_course": is_real_course})
 
     return render_template(
         "search.html",

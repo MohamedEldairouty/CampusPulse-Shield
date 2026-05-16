@@ -41,6 +41,9 @@
           </div>
           <h3>{{ r['title'] if 'title' in r.keys() else r[2] }}</h3>
           <p class="meta">👨‍🏫 {{ r['instructor'] if 'instructor' in r.keys() else r[3] }}</p>
+          {% if not item.is_real_course %}
+            <p class="meta tiny mono">id: {{ r['id'] if 'id' in r.keys() else r[0] }}</p>
+          {% endif %}
           {% if not item.enrolled and me.role == 'student' %}
             <div class="contact-ta">
               ℹ️ Not registered — contact your TA to enroll.
